@@ -56,33 +56,35 @@ export default function Home() {
     setQuestionsData(questionsDataImport as Question[]);
     setFilteredQuestions(questionsDataImport as Question[]);
     
-    // Load bookmarked questions from localStorage
-    const savedBookmarks = localStorage.getItem('bookmarkedQuestions');
-    if (savedBookmarks) {
-      setBookmarkedQuestions(JSON.parse(savedBookmarks));
+    // Client-side only code that uses localStorage
+    if (typeof window !== 'undefined') {
+      // Load bookmarks from localStorage
+      const savedBookmarks = localStorage.getItem('bookmarkedQuestions');
+      if (savedBookmarks) {
+        setBookmarkedQuestions(JSON.parse(savedBookmarks));
+      }
+      
+      // Load recently viewed from localStorage
+      const savedRecentlyViewed = localStorage.getItem('recentlyViewed');
+      if (savedRecentlyViewed) {
+        setRecentlyViewed(JSON.parse(savedRecentlyViewed));
+      }
+      
+      // Initialize theme
+      const savedTheme = localStorage.getItem('darkTheme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initialTheme = savedTheme ? JSON.parse(savedTheme) : prefersDark;
+      setIsDarkTheme(initialTheme);
+      
+      // Apply initial theme to body
+      document.body.classList.toggle('dark-theme', initialTheme);
     }
-    
-    // Load recently viewed from localStorage
-    const savedRecentlyViewed = localStorage.getItem('recentlyViewed');
-    if (savedRecentlyViewed) {
-      setRecentlyViewed(JSON.parse(savedRecentlyViewed));
-    }
-    
-    // Initialize theme
-    const savedTheme = localStorage.getItem('darkTheme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = savedTheme ? JSON.parse(savedTheme) : prefersDark;
-    setIsDarkTheme(initialTheme);
     
     // Set up marked.js with default options, we'll handle syntax highlighting separately
     marked.setOptions({
       breaks: true,
       gfm: true
     });
-    
-    
-    // Apply initial theme to body
-    document.body.classList.toggle('dark-theme', initialTheme);
   }, []);
   
   // Effect for creating/updating the topics chart
@@ -95,9 +97,47 @@ export default function Home() {
   // Effect for applying theme changes
   useEffect(() => {
     document.body.classList.toggle('dark-theme', isDarkTheme);
-    localStorage.setItem('darkTheme', JSON.stringify(isDarkTheme));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('darkTheme', JSON.stringify(isDarkTheme));
+    }
   }, [isDarkTheme]);
   
+  // Function to filter questions
+  const filterQuestions = () => {
+    let filtered = [...questionsData];
+    
+    // Apply search filter - only search in question text, not answer
+    // This matches the original implementation
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(q => q.question.toLowerCase().includes(search));
+    }
+    
+    // Apply category filter based on question content
+    if (currentFilter !== 'all') {
+      filtered = filtered.filter(q => determineQuestionCategory(q) === currentFilter);
+    }
+    
+    // Apply sort order
+    switch (sortOrder) {
+      case 'id':
+        filtered.sort((a, b) => a.id - b.id);
+        break;
+      case 'id-desc':
+        filtered.sort((a, b) => b.id - a.id);
+        break;
+      case 'alpha':
+        filtered.sort((a, b) => a.question.localeCompare(b.question));
+        break;
+      case 'alpha-desc':
+        filtered.sort((a, b) => b.question.localeCompare(a.question));
+        break;
+    }
+    
+    setFilteredQuestions(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
   // Effect for filtering questions
   useEffect(() => {
     filterQuestions();
@@ -105,15 +145,18 @@ export default function Home() {
   
   // Effect for storing bookmarks in localStorage
   useEffect(() => {
-    localStorage.setItem('bookmarkedQuestions', JSON.stringify(bookmarkedQuestions));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bookmarkedQuestions', JSON.stringify(bookmarkedQuestions));
+    }
   }, [bookmarkedQuestions]);
   
   // Effect for storing recently viewed in localStorage
   useEffect(() => {
-    localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
+    }
   }, [recentlyViewed]);
 
-  // Function to create topics chart
   const createTopicsChart = () => {
     if (!topicsChartCanvasRef.current) return;
     
@@ -170,12 +213,12 @@ export default function Home() {
           },
           tooltip: {
             callbacks: {
-              label: function(context: any) {
+              label: function(context: {dataIndex: number; dataset: {data: number[]}}) {
                 const dataset = context.dataset;
                 const total = dataset.data.reduce((acc: number, cur: number) => acc + cur, 0);
                 const value = dataset.data[context.dataIndex];
                 const percentage = Math.round((value / total) * 100);
-                return `${context.label}: ${value} (${percentage}%)`;
+                return `${value} questions (${percentage}%)`;
               }
             }
           }
@@ -205,41 +248,7 @@ export default function Home() {
     }
   };
 
-  // Function to filter questions
-  const filterQuestions = () => {
-    let filtered = [...questionsData];
-    
-    // Apply search filter - only search in question text, not answer
-    // This matches the original implementation
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(q => q.question.toLowerCase().includes(search));
-    }
-    
-    // Apply category filter based on question content
-    if (currentFilter !== 'all') {
-      filtered = filtered.filter(q => determineQuestionCategory(q) === currentFilter);
-    }
-    
-    // Apply sort order
-    switch (sortOrder) {
-      case 'id':
-        filtered.sort((a, b) => a.id - b.id);
-        break;
-      case 'id-desc':
-        filtered.sort((a, b) => b.id - a.id);
-        break;
-      case 'alpha':
-        filtered.sort((a, b) => a.question.localeCompare(b.question));
-        break;
-      case 'alpha-desc':
-        filtered.sort((a, b) => b.question.localeCompare(a.question));
-        break;
-    }
-    
-    setFilteredQuestions(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  };
+
 
   // Function to open question details in modal
   const openQuestionDetails = (question: Question) => {
@@ -342,7 +351,7 @@ export default function Home() {
     
     // Calculate range of page numbers to display
     let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages, startPage + 4);
+    const endPage = Math.min(totalPages, startPage + 4);
     
     // Adjust start if end is at max
     if (endPage === totalPages) {
