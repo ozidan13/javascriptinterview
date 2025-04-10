@@ -6,6 +6,8 @@ import { marked } from 'marked';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.min.css';
 import './js-qa-styles.css';
+import { UserButton, useUser, SignInButton, SignUpButton, SignedIn, SignedOut, useClerk } from '@clerk/nextjs';
+import Link from 'next/link';
 
 // Importing data - we'll move this to public/datajs.json
 import questionsDataImport from '../../public/datajs.json';
@@ -28,6 +30,10 @@ interface Categories {
 }
 
 export default function Home() {
+  // Auth state
+  const { isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
+  
   // State variables
   const [questionsData, setQuestionsData] = useState<Question[]>([]);
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
@@ -58,16 +64,19 @@ export default function Home() {
     
     // Client-side only code that uses localStorage
     if (typeof window !== 'undefined') {
-      // Load bookmarks from localStorage
-      const savedBookmarks = localStorage.getItem('bookmarkedQuestions');
-      if (savedBookmarks) {
-        setBookmarkedQuestions(JSON.parse(savedBookmarks));
-      }
-      
-      // Load recently viewed from localStorage
-      const savedRecentlyViewed = localStorage.getItem('recentlyViewed');
-      if (savedRecentlyViewed) {
-        setRecentlyViewed(JSON.parse(savedRecentlyViewed));
+      // Only load data if user is signed in
+      if (isSignedIn) {
+        // Load bookmarks from localStorage
+        const savedBookmarks = localStorage.getItem(`bookmarkedQuestions-${user?.id}`);
+        if (savedBookmarks) {
+          setBookmarkedQuestions(JSON.parse(savedBookmarks));
+        }
+        
+        // Load recently viewed from localStorage
+        const savedRecentlyViewed = localStorage.getItem(`recentlyViewed-${user?.id}`);
+        if (savedRecentlyViewed) {
+          setRecentlyViewed(JSON.parse(savedRecentlyViewed));
+        }
       }
       
       // Initialize theme
@@ -85,7 +94,7 @@ export default function Home() {
       breaks: true,
       gfm: true
     });
-  }, []);
+  }, [isSignedIn, user]);
   
   // Effect for creating/updating the topics chart
   useEffect(() => {
@@ -145,17 +154,17 @@ export default function Home() {
   
   // Effect for storing bookmarks in localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('bookmarkedQuestions', JSON.stringify(bookmarkedQuestions));
+    if (typeof window !== 'undefined' && isSignedIn && user) {
+      localStorage.setItem(`bookmarkedQuestions-${user.id}`, JSON.stringify(bookmarkedQuestions));
     }
-  }, [bookmarkedQuestions]);
+  }, [bookmarkedQuestions, isSignedIn, user]);
   
   // Effect for storing recently viewed in localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
+    if (typeof window !== 'undefined' && isSignedIn && user) {
+      localStorage.setItem(`recentlyViewed-${user.id}`, JSON.stringify(recentlyViewed));
     }
-  }, [recentlyViewed]);
+  }, [recentlyViewed, isSignedIn, user]);
 
   const createTopicsChart = () => {
     if (!topicsChartCanvasRef.current) return;
@@ -248,8 +257,6 @@ export default function Home() {
     }
   };
 
-
-
   // Function to open question details in modal
   const openQuestionDetails = (question: Question) => {
     setCurrentQuestionId(question.id);
@@ -327,6 +334,11 @@ export default function Home() {
   // Function to toggle mobile menu
   const toggleMobileMenu = () => {
     setIsSidebarOpen(prev => !prev);
+  };
+  
+  // Function to handle logout
+  const handleLogout = () => {
+    signOut();
   };
   
   // Function to render pagination
@@ -423,7 +435,27 @@ export default function Home() {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isDarkTheme ? 'dark-theme' : ''}`}>
+      <header className="app-header">
+        <div className="header-left">
+          <button className="menu-toggle" onClick={toggleMobileMenu} aria-label="Toggle Menu">
+            <i className="fas fa-bars"></i>
+          </button>
+          <h1 className="app-title">JavaScript Interview Q&A</h1>
+        </div>
+        <div className="header-right">
+          <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle Theme">
+            <i className={`fas ${isDarkTheme ? 'fa-sun' : 'fa-moon'}`}></i>
+          </button>
+          {/* Keep a minimal user button in the header for mobile */}
+          <div className="sm:hidden">
+            <SignedIn>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+          </div>
+        </div>
+      </header>
+      
       {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="logo">
@@ -431,7 +463,7 @@ export default function Home() {
           <h1>JS Q&A</h1>
         </div>
         
-        <div className="theme-toggle">
+        <div className="theme-toggle mb-4">
           <span className="toggle-label">Theme</span>
           <label className="switch">
             <input 
@@ -469,6 +501,47 @@ export default function Home() {
             <span>Bookmarks</span>
           </a>
         </nav>
+        
+        {/* Auth section in sidebar */}
+        <div className="sidebar-auth">
+          <SignedOut>
+            <div className="flex flex-col gap-3">
+              <h3>Account</h3>
+              <SignInButton mode="modal">
+                <button className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all text-sm flex items-center justify-center">
+                  <i className="fas fa-sign-in-alt mr-2"></i> Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition-all text-sm flex items-center justify-center">
+                  <i className="fas fa-user-plus mr-2"></i> Sign Up
+                </button>
+              </SignUpButton>
+            </div>
+          </SignedOut>
+          
+          <SignedIn>
+            <div className="flex flex-col gap-3">
+              <h3>My Account</h3>
+              <div className="user-info">
+                <UserButton afterSignOutUrl="/" />
+                <div>
+                  <div className="font-medium">{user?.firstName || user?.username || 'User'}</div>
+                  <div className="text-gray-500 text-xs">{user?.primaryEmailAddress?.emailAddress || ''}</div>
+                </div>
+              </div>
+              <Link href="/dashboard" className="w-full px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-all text-sm flex items-center justify-center">
+                <i className="fas fa-user-circle mr-2"></i> Dashboard
+              </Link>
+              <button 
+                onClick={handleLogout}
+                className="w-full px-4 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-all text-sm flex items-center justify-center"
+              >
+                <i className="fas fa-sign-out-alt mr-2"></i> Logout
+              </button>
+            </div>
+          </SignedIn>
+        </div>
         
         <div className="sidebar-footer">
           <p>&copy; 2025 JavaScript Q&A</p>

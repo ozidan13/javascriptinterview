@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^4.29.9",
     "chart.js": "^4.4.8",
     "highlight.js": "^11.11.1",
     "marked": "^15.0.8",
