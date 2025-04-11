@@ -5,7 +5,6 @@ import { Chart } from 'chart.js/auto';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.min.css';
-import './js-qa-styles.css';
 import { UserButton, useUser, SignInButton, SignUpButton, SignedIn, SignedOut, useClerk } from '@clerk/nextjs';
 import Link from 'next/link';
 
@@ -265,6 +264,8 @@ export default function Home() {
     // Add modal open class
     if (modalRef.current) {
       modalRef.current.classList.add('open');
+      // Prevent body scrolling when modal is open
+      document.body.style.overflow = 'hidden';
     }
     
     // Update document title
@@ -282,6 +283,8 @@ export default function Home() {
   const closeModal = () => {
     if (modalRef.current) {
       modalRef.current.classList.remove('open');
+      // Re-enable body scrolling when modal is closed
+      document.body.style.overflow = '';
     }
     document.title = 'JavaScript Interview Q&A';
   };
@@ -334,6 +337,12 @@ export default function Home() {
   // Function to toggle mobile menu
   const toggleMobileMenu = () => {
     setIsSidebarOpen(prev => !prev);
+    // When sidebar is opened, prevent body scrolling
+    if (!isSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
   };
   
   // Function to handle logout
@@ -341,7 +350,7 @@ export default function Home() {
     signOut();
   };
   
-  // Function to render pagination
+  // Function to render pagination with improved handling for many pages
   const renderPagination = () => {
     const totalPages = Math.ceil(filteredQuestions.length / questionsPerPage);
     const pages = [];
@@ -356,29 +365,75 @@ export default function Home() {
         className={`pagination-btn ${currentPage === 1 ? 'disabled' : ''}`}
         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
         disabled={currentPage === 1}
+        aria-label="Previous page"
       >
         <i className="fas fa-chevron-left"></i>
       </button>
     );
     
     // Calculate range of page numbers to display
-    let startPage = Math.max(1, currentPage - 2);
-    const endPage = Math.min(totalPages, startPage + 4);
+    // Show a maximum of 5 pages
+    const maxPagesToShow = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
     
     // Adjust start if end is at max
     if (endPage === totalPages) {
-      startPage = Math.max(1, endPage - 4);
+      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+    
+    // Show first page with ellipsis if needed
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key={1}
+          className={`pagination-btn ${currentPage === 1 ? 'active' : ''}`}
+          onClick={() => setCurrentPage(1)}
+          aria-label="Go to page 1"
+        >
+          1
+        </button>
+      );
+      
+      if (startPage > 2) {
+        pages.push(
+          <span key="ellipsis1" className="pagination-ellipsis">...</span>
+        );
+      }
     }
     
     // Page numbers
     for (let i = startPage; i <= endPage; i++) {
+      if (i !== 1 && i !== totalPages) { // Skip first and last page as they're handled separately
+        pages.push(
+          <button
+            key={i}
+            className={`pagination-btn ${currentPage === i ? 'active' : ''}`}
+            onClick={() => setCurrentPage(i)}
+            aria-label={`Go to page ${i}`}
+          >
+            {i}
+          </button>
+        );
+      }
+    }
+    
+    // Show last page with ellipsis if needed
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(
+          <span key="ellipsis2" className="pagination-ellipsis">...</span>
+        );
+      }
+      
       pages.push(
         <button
-          key={i}
-          className={`pagination-btn ${currentPage === i ? 'active' : ''}`}
-          onClick={() => setCurrentPage(i)}
+          key={totalPages}
+          className={`pagination-btn ${currentPage === totalPages ? 'active' : ''}`}
+          onClick={() => setCurrentPage(totalPages)}
+          aria-label={`Go to page ${totalPages}`}
         >
-          {i}
+          {totalPages}
         </button>
       );
     }
@@ -390,6 +445,7 @@ export default function Home() {
         className={`pagination-btn ${currentPage === totalPages ? 'disabled' : ''}`}
         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
         disabled={currentPage === totalPages}
+        aria-label="Next page"
       >
         <i className="fas fa-chevron-right"></i>
       </button>
@@ -434,398 +490,429 @@ export default function Home() {
     return determineQuestionCategory(question);
   };
 
+  // Add event listener for escape key to close modal
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscKey);
+    return () => {
+      window.removeEventListener('keydown', handleEscKey);
+    };
+  }, []);
+
+  // Check for and handle any gear icon / settings button
+  useEffect(() => {
+    // Find any gear icon or settings button that might be duplicating functionality
+    const gearButtons = document.querySelectorAll('.js-qa-app .settings-btn, .js-qa-app .gear-icon');
+    
+    // If there are multiple gear buttons/icons, hide all but one
+    if (gearButtons.length > 1) {
+      // Convert NodeList to Array and skip the first element (keep that one visible)
+      Array.from(gearButtons).slice(1).forEach((button) => {
+        if (button instanceof HTMLElement) {
+          button.style.display = 'none';
+        }
+      });
+    }
+  }, []);
+
   return (
-    <div className={`app-container ${isDarkTheme ? 'dark-theme' : ''}`}>
-      <header className="app-header">
-        <div className="header-left">
-          <button className="menu-toggle" onClick={toggleMobileMenu} aria-label="Toggle Menu">
-            <i className="fas fa-bars"></i>
-          </button>
-          <h1 className="app-title">JavaScript Interview Q&A</h1>
-        </div>
-        <div className="header-right">
-          <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle Theme">
-            <i className={`fas ${isDarkTheme ? 'fa-sun' : 'fa-moon'}`}></i>
-          </button>
-          {/* Keep a minimal user button in the header for mobile */}
-          <div className="sm:hidden">
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
+    <div className={`js-qa-app ${isDarkTheme ? 'dark-theme' : ''}`}>
+      <div className="app-container">
+        {/* Mobile Menu Button - visible only on mobile */}
+        <button 
+          className="menu-btn" 
+          aria-label="Toggle navigation menu"
+          onClick={toggleMobileMenu}
+        >
+          <i className={`fas ${isSidebarOpen ? 'fa-times' : 'fa-bars'}`}></i>
+        </button>
+        
+        {/* Menu Overlay for Mobile */}
+        {isSidebarOpen && (
+          <div 
+            className="menu-overlay active" 
+            onClick={() => {
+              setIsSidebarOpen(false);
+              document.body.style.overflow = '';
+            }}
+          ></div>
+        )}
+        
+        {/* Improved app header - removing theme toggle */}
+        <header className="app-header">
+          <div className="header-left">
+            <h1 className="app-title">JavaScript Interview Q&A</h1>
           </div>
-        </div>
-      </header>
-      
-      {/* Sidebar */}
-      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="logo">
-          <i className="fas fa-code"></i>
-          <h1>JS Q&A</h1>
-        </div>
-        
-        <div className="theme-toggle mb-4">
-          <span className="toggle-label">Theme</span>
-          <label className="switch">
-            <input 
-              type="checkbox" 
-              checked={isDarkTheme}
-              onChange={toggleTheme}
-            />
-            <span className="slider round"></span>
-          </label>
-        </div>
-        
-        <nav className="sidebar-nav">
-          <a 
-            href="#" 
-            className={`nav-item ${activePage === 'dashboard' ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); switchPage('dashboard'); }}
-          >
-            <i className="fas fa-home"></i>
-            <span>Statistics</span>
-          </a>
-          <a 
-            href="#" 
-            className={`nav-item ${activePage === 'all-questions' ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); switchPage('all-questions'); }}
-          >
-            <i className="fas fa-list"></i>
-            <span>All Questions</span>
-          </a>
-          <a 
-            href="#" 
-            className={`nav-item ${activePage === 'bookmarks' ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); switchPage('bookmarks'); }}
-          >
-            <i className="fas fa-bookmark"></i>
-            <span>Bookmarks</span>
-          </a>
-        </nav>
-        
-        {/* Auth section in sidebar */}
-        <div className="sidebar-auth">
-          <SignedOut>
-            <div className="flex flex-col gap-3">
-              <h3>Account</h3>
-              <SignInButton mode="modal">
-                <button className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all text-sm flex items-center justify-center">
-                  <i className="fas fa-sign-in-alt mr-2"></i> Sign In
-                </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition-all text-sm flex items-center justify-center">
-                  <i className="fas fa-user-plus mr-2"></i> Sign Up
-                </button>
-              </SignUpButton>
-            </div>
-          </SignedOut>
-          
-          <SignedIn>
-            <div className="flex flex-col gap-3">
-              <h3>My Account</h3>
-              <div className="user-info">
+          <div className="header-right">
+            {/* Theme toggle removed from here */}
+            {/* Keep a minimal user button in the header for mobile */}
+            <div className="sm:hidden">
+              <SignedIn>
                 <UserButton afterSignOutUrl="/" />
-                <div>
-                  <div className="font-medium">{user?.firstName || user?.username || 'User'}</div>
-                  <div className="text-gray-500 text-xs">{user?.primaryEmailAddress?.emailAddress || ''}</div>
-                </div>
-              </div>
-              <Link href="/dashboard" className="w-full px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-all text-sm flex items-center justify-center">
-                <i className="fas fa-user-circle mr-2"></i> Dashboard
-              </Link>
-              <button 
-                onClick={handleLogout}
-                className="w-full px-4 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-all text-sm flex items-center justify-center"
-              >
-                <i className="fas fa-sign-out-alt mr-2"></i> Logout
-              </button>
-            </div>
-          </SignedIn>
-        </div>
-        
-        <div className="sidebar-footer">
-          <p>&copy; 2025 JavaScript Q&A</p>
-        </div>
-      </aside>
-      
-      {/* Mobile Menu Button */}
-      <button 
-        className="menu-btn" 
-        aria-label="Toggle navigation menu"
-        onClick={toggleMobileMenu}
-      >
-        <i className={`fas ${isSidebarOpen ? 'fa-times' : 'fa-bars'}`}></i>
-      </button>
-      
-      {/* Menu Overlay for Mobile */}
-      {isSidebarOpen && (
-        <div 
-          className="menu-overlay active" 
-          onClick={() => setIsSidebarOpen(false)}
-        ></div>
-      )}
-      
-      {/* Main Content */}
-      <main className="main-content">
-        <header className="main-header">
-          <div className="search-container">
-            <i className="fas fa-search"></i>
-            <input 
-              type="text" 
-              placeholder="Search for questions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="header-stats">
-            <div className="stat-item">
-              <span className="stat-value">{questionsData.length}</span>
-              <span className="stat-label">Questions</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{bookmarkedQuestions.length}</span>
-              <span className="stat-label">Bookmarked</span>
+              </SignedIn>
             </div>
           </div>
         </header>
         
-        {/* Dashboard Page */}
-        <div className={`page-content ${activePage === 'dashboard' ? 'active' : ''}`}>
-          <h2 className="page-title">Interview Questions</h2>
+        {/* Sidebar */}
+        <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+          <div className="logo">
+            <i className="fas fa-code"></i>
+            <h1>JS Q&A</h1>
+          </div>
           
-          <div className="dashboard-grid">
-            <div className="card stats-card">
-              <h3>Statistics</h3>
-              <div className="stats-container">
-                <div className="stat-box">
-                  <span className="stat-number">{questionsData.length}</span>
-                  <span className="stat-text">Total Questions</span>
+          <div className="theme-toggle mb-4">
+            <span className="toggle-label">Theme</span>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={isDarkTheme}
+                onChange={toggleTheme}
+              />
+              <span className="slider round"></span>
+            </label>
+          </div>
+          
+          <nav className="sidebar-nav">
+            <a 
+              href="#" 
+              className={`nav-item ${activePage === 'dashboard' ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); switchPage('dashboard'); }}
+            >
+              <i className="fas fa-home"></i>
+              <span>Statistics</span>
+            </a>
+            <a 
+              href="#" 
+              className={`nav-item ${activePage === 'all-questions' ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); switchPage('all-questions'); }}
+            >
+              <i className="fas fa-list"></i>
+              <span>All Questions</span>
+            </a>
+            <a 
+              href="#" 
+              className={`nav-item ${activePage === 'bookmarks' ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); switchPage('bookmarks'); }}
+            >
+              <i className="fas fa-bookmark"></i>
+              <span>Bookmarks</span>
+            </a>
+          </nav>
+          
+          {/* Auth section in sidebar */}
+          <div className="sidebar-auth">
+            <SignedOut>
+              <div className="flex flex-col gap-3">
+                <h3>Account</h3>
+                <SignInButton mode="modal">
+                  <button className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all text-sm flex items-center justify-center">
+                    <i className="fas fa-sign-in-alt mr-2"></i> Sign In
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button className="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition-all text-sm flex items-center justify-center">
+                    <i className="fas fa-user-plus mr-2"></i> Sign Up
+                  </button>
+                </SignUpButton>
+              </div>
+            </SignedOut>
+            
+            <SignedIn>
+              <div className="flex flex-col gap-3">
+                <h3>My Account</h3>
+                <div className="user-info">
+                  <UserButton afterSignOutUrl="/" />
+                  <div>
+                    <div className="font-medium">{user?.firstName || user?.username || 'User'}</div>
+                    <div className="text-gray-500 text-xs">{user?.primaryEmailAddress?.emailAddress || ''}</div>
+                  </div>
                 </div>
-                <div className="stat-box">
-                  <span className="stat-number">5</span>
-                  <span className="stat-text">Topics</span>
-                </div>
-                <div className="stat-box">
-                  <span className="stat-number">{recentlyViewed.length}</span>
-                  <span className="stat-text">Questions Viewed</span>
-                </div>
+                <Link href="/dashboard" className="w-full px-4 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-all text-sm flex items-center justify-center">
+                  <i className="fas fa-user-circle mr-2"></i> Dashboard
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-all text-sm flex items-center justify-center"
+                >
+                  <i className="fas fa-sign-out-alt mr-2"></i> Logout
+                </button>
+              </div>
+            </SignedIn>
+          </div>
+          
+          <div className="sidebar-footer">
+            <p>&copy; 2025 JavaScript Q&A</p>
+          </div>
+        </aside>
+        
+        {/* Main Content */}
+        <main className="main-content">
+          <header className="main-header">
+            <div className="search-container">
+              <i className="fas fa-search"></i>
+              <input 
+                type="text" 
+                placeholder="Search for questions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="header-stats">
+              <div className="stat-item">
+                <span className="stat-value">{questionsData.length}</span>
+                <span className="stat-label">Questions</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">{bookmarkedQuestions.length}</span>
+                <span className="stat-label">Bookmarked</span>
               </div>
             </div>
+          </header>
+          
+          {/* Dashboard Page */}
+          <div className={`page-content ${activePage === 'dashboard' ? 'active' : ''}`}>
+            <h2 className="page-title">Interview Questions</h2>
             
-            <div className="card chart-card">
-              <h3>Questions by Topic</h3>
-              <div className="chart-container">
-                <canvas ref={topicsChartCanvasRef}></canvas>
+            <div className="dashboard-grid">
+              <div className="card stats-card">
+                <h3>Statistics</h3>
+                <div className="stats-container">
+                  <div className="stat-box">
+                    <span className="stat-number">{questionsData.length}</span>
+                    <span className="stat-text">Total Questions</span>
+                  </div>
+                  <div className="stat-box">
+                    <span className="stat-number">5</span>
+                    <span className="stat-text">Topics</span>
+                  </div>
+                  <div className="stat-box">
+                    <span className="stat-number">{recentlyViewed.length}</span>
+                    <span className="stat-text">Questions Viewed</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div className="card recent-card">
-              <h3>Recently Viewed</h3>
-              <ul className="recent-list">
-                {getRecentlyViewedQuestions().length > 0 ? (
-                  getRecentlyViewedQuestions().map(question => (
-                    <li key={`recent-${question.id}`}>
+              
+              <div className="card chart-card">
+                <h3>Questions by Topic</h3>
+                <div className="chart-container">
+                  <canvas ref={topicsChartCanvasRef}></canvas>
+                </div>
+              </div>
+              
+              <div className="card recent-card">
+                <h3>Recently Viewed</h3>
+                <ul className="recent-list">
+                  {getRecentlyViewedQuestions().length > 0 ? (
+                    getRecentlyViewedQuestions().map(question => (
+                      <li key={`recent-${question.id}`}>
+                        <a href="#" onClick={(e) => { e.preventDefault(); openQuestionDetails(question); }}>
+                          {question.question}
+                        </a>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="empty-list">No questions viewed yet</li>
+                  )}
+                </ul>
+              </div>
+              
+              <div className="card popular-card">
+                <h3>Popular Questions</h3>
+                <ul className="popular-list">
+                  {getPopularQuestions().map(question => (
+                    <li key={`popular-${question.id}`}>
                       <a href="#" onClick={(e) => { e.preventDefault(); openQuestionDetails(question); }}>
                         {question.question}
                       </a>
                     </li>
-                  ))
-                ) : (
-                  <li className="empty-list">No questions viewed yet</li>
-                )}
-              </ul>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          {/* All Questions Page */}
+          <div className={`page-content ${activePage === 'all-questions' ? 'active' : ''}`}>
+            <h2 className="page-title">All Questions</h2>
+            
+            <div className="filters-container">
+              <div className="filter-group">
+                <button 
+                  className={`filter-btn ${currentFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setCurrentFilter('all')}
+                >
+                  All
+                </button>
+                <button 
+                  className={`filter-btn ${currentFilter === 'basics' ? 'active' : ''}`}
+                  onClick={() => setCurrentFilter('basics')}
+                >
+                  Basics
+                </button>
+                <button 
+                  className={`filter-btn ${currentFilter === 'advanced' ? 'active' : ''}`}
+                  onClick={() => setCurrentFilter('advanced')}
+                >
+                  Advanced
+                </button>
+                <button 
+                  className={`filter-btn ${currentFilter === 'functions' ? 'active' : ''}`}
+                  onClick={() => setCurrentFilter('functions')}
+                >
+                  Functions
+                </button>
+                <button 
+                  className={`filter-btn ${currentFilter === 'objects' ? 'active' : ''}`}
+                  onClick={() => setCurrentFilter('objects')}
+                >
+                  Objects
+                </button>
+                <button 
+                  className={`filter-btn ${currentFilter === 'arrays' ? 'active' : ''}`}
+                  onClick={() => setCurrentFilter('arrays')}
+                >
+                  Arrays
+                </button>
+              </div>
+              <div className="sort-group">
+                <label htmlFor="sort-select">Sort By:</label>
+                <select 
+                  id="sort-select"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                >
+                  <option value="id">ID (Ascending)</option>
+                  <option value="id-desc">ID (Descending)</option>
+                  <option value="alpha">Alphabetical</option>
+                  <option value="alpha-desc">Reverse Alphabetical</option>
+                </select>
+              </div>
             </div>
             
-            <div className="card popular-card">
-              <h3>Popular Questions</h3>
-              <ul className="popular-list">
-                {getPopularQuestions().map(question => (
-                  <li key={`popular-${question.id}`}>
-                    <a href="#" onClick={(e) => { e.preventDefault(); openQuestionDetails(question); }}>
-                      {question.question}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-        
-        {/* All Questions Page */}
-        <div className={`page-content ${activePage === 'all-questions' ? 'active' : ''}`}>
-          <h2 className="page-title">All Questions</h2>
-          
-          <div className="filters-container">
-            <div className="filter-group">
-              <button 
-                className={`filter-btn ${currentFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setCurrentFilter('all')}
-              >
-                All
-              </button>
-              <button 
-                className={`filter-btn ${currentFilter === 'basics' ? 'active' : ''}`}
-                onClick={() => setCurrentFilter('basics')}
-              >
-                Basics
-              </button>
-              <button 
-                className={`filter-btn ${currentFilter === 'advanced' ? 'active' : ''}`}
-                onClick={() => setCurrentFilter('advanced')}
-              >
-                Advanced
-              </button>
-              <button 
-                className={`filter-btn ${currentFilter === 'functions' ? 'active' : ''}`}
-                onClick={() => setCurrentFilter('functions')}
-              >
-                Functions
-              </button>
-              <button 
-                className={`filter-btn ${currentFilter === 'objects' ? 'active' : ''}`}
-                onClick={() => setCurrentFilter('objects')}
-              >
-                Objects
-              </button>
-              <button 
-                className={`filter-btn ${currentFilter === 'arrays' ? 'active' : ''}`}
-                onClick={() => setCurrentFilter('arrays')}
-              >
-                Arrays
-              </button>
-            </div>
-            <div className="sort-group">
-              <label htmlFor="sort-select">Sort By:</label>
-              <select 
-                id="sort-select"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-              >
-                <option value="id">ID (Ascending)</option>
-                <option value="id-desc">ID (Descending)</option>
-                <option value="alpha">Alphabetical</option>
-                <option value="alpha-desc">Reverse Alphabetical</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="questions-grid">
-            {getCurrentQuestions().map(question => (
-              <div key={question.id} className="question-card">
-                <div className="question-header">
-                  <span className="question-id">#{question.id}</span>
+            <div className="questions-grid">
+              {getCurrentQuestions().map(question => (
+                <div key={question.id} className="question-card">
+                  <div className="question-header">
+                    <span className="question-id">#{question.id}</span>
+                    <button 
+                      className={`bookmark-icon ${bookmarkedQuestions.includes(question.id) ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click when clicking bookmark
+                        toggleBookmark(question.id);
+                      }}
+                      aria-label={bookmarkedQuestions.includes(question.id) ? 'Remove bookmark' : 'Add bookmark'}
+                    >
+                      <i className={`${bookmarkedQuestions.includes(question.id) ? 'fas' : 'far'} fa-bookmark`}></i>
+                    </button>
+                  </div>
+                  <h3 className="question-title">{question.question}</h3>
+                  <div className="question-tags">
+                    <span className="question-tag">{getQuestionTopic(question)}</span>
+                  </div>
                   <button 
-                    className={`bookmark-icon ${bookmarkedQuestions.includes(question.id) ? 'active' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent card click when clicking bookmark
-                      toggleBookmark(question.id);
-                    }}
-                    aria-label={bookmarkedQuestions.includes(question.id) ? 'Remove bookmark' : 'Add bookmark'}
+                    className="view-btn"
+                    onClick={() => openQuestionDetails(question)}
                   >
-                    <i className={`${bookmarkedQuestions.includes(question.id) ? 'fas' : 'far'} fa-bookmark`}></i>
+                    View Answer
                   </button>
+                  {/* Add bookmark indicator as in the original implementation */}
+                  {/* Show bookmark indicator on the card */}
+                  {bookmarkedQuestions.includes(question.id) && (
+                    <i className="fas fa-bookmark bookmark-indicator"></i>
+                  )}
                 </div>
-                <h3 className="question-title">{question.question}</h3>
-                <div className="question-tags">
-                  <span className="question-tag">{getQuestionTopic(question)}</span>
-                </div>
-                <button 
-                  className="view-btn"
-                  onClick={() => openQuestionDetails(question)}
-                >
-                  View Answer
-                </button>
-                {/* Add bookmark indicator as in the original implementation */}
-                {/* Show bookmark indicator on the card */}
-                {bookmarkedQuestions.includes(question.id) && (
-                  <i className="fas fa-bookmark bookmark-indicator"></i>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
+            
+            {renderPagination()}
           </div>
           
-          {renderPagination()}
-        </div>
+          {/* Bookmarks Page */}
+          <div className={`page-content ${activePage === 'bookmarks' ? 'active' : ''}`}>
+            <h2 className="page-title">Bookmarked Questions</h2>
+            
+            <div className="bookmarks-container">
+              {getBookmarkedQuestions().length > 0 ? (
+                getBookmarkedQuestions().map(question => (
+                  <div key={`bookmark-${question.id}`} className="bookmark-item">
+                    <div className="bookmark-content">
+                      <h3>{question.question}</h3>
+                    </div>
+                    <div className="bookmark-actions">
+                      <button 
+                        className="view-answer-btn"
+                        onClick={() => openQuestionDetails(question)}
+                      >
+                        View Answer
+                      </button>
+                      <button 
+                        className="remove-bookmark-btn"
+                        onClick={() => toggleBookmark(question.id)}
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-bookmarks">
+                  <i className="far fa-bookmark"></i>
+                  <p>No bookmarked questions yet</p>
+                  <p>Click the bookmark icon on any question to save it here</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
         
-        {/* Bookmarks Page */}
-        <div className={`page-content ${activePage === 'bookmarks' ? 'active' : ''}`}>
-          <h2 className="page-title">Bookmarked Questions</h2>
-          
-          <div className="bookmarks-container">
-            {getBookmarkedQuestions().length > 0 ? (
-              getBookmarkedQuestions().map(question => (
-                <div key={`bookmark-${question.id}`} className="bookmark-item">
-                  <div className="bookmark-content">
-                    <h3>{question.question}</h3>
-                  </div>
-                  <div className="bookmark-actions">
-                    <button 
-                      className="view-answer-btn"
-                      onClick={() => openQuestionDetails(question)}
-                    >
-                      View Answer
-                    </button>
-                    <button 
-                      className="remove-bookmark-btn"
-                      onClick={() => toggleBookmark(question.id)}
-                    >
-                      <i className="fas fa-trash-alt"></i>
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="empty-bookmarks">
-                <i className="far fa-bookmark"></i>
-                <p>No bookmarked questions yet</p>
-                <p>Click the bookmark icon on any question to save it here</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-      
-      {/* Question Detail Modal */}
-      <div className="modal" ref={modalRef} id="question-modal">
-        <div className="modal-content">
-          <div className="modal-header">
-            {getCurrentQuestion() && (
-              <>
-                <h2>{getCurrentQuestion()?.question}</h2>
-                <button 
-                  className={`bookmark-btn ${bookmarkedQuestions.includes(getCurrentQuestion()?.id || 0) ? 'active' : ''}`}
-                  onClick={() => getCurrentQuestion() && toggleBookmark(getCurrentQuestion()!.id)}
-                  aria-label="Bookmark question"
-                >
-                  <i className={`${bookmarkedQuestions.includes(getCurrentQuestion()?.id || 0) ? 'fas' : 'far'} fa-bookmark`}></i>
-                </button>
-              </>
-            )}
-            <button 
-              className="close-btn" 
-              onClick={closeModal}
-              aria-label="Close modal"
-            >
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-          <div className="modal-body">
-            {getCurrentQuestion() && (
-              <div 
-                className="answer-content"
-                dangerouslySetInnerHTML={{ 
-                  __html: marked.parse(getCurrentQuestion()?.answer || '') 
-                }}
-                ref={(node) => {
-                  // Apply syntax highlighting after content is rendered
-                  if (node) {
-                    node.querySelectorAll('pre code').forEach((block) => {
-                      hljs.highlightElement(block as HTMLElement);
-                    });
-                  }
-                }}
-              ></div>
-            )}
+        {/* Question Detail Modal */}
+        <div className="modal" ref={modalRef} id="question-modal" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              {getCurrentQuestion() && (
+                <>
+                  <h2>{getCurrentQuestion()?.question}</h2>
+                  <button 
+                    className={`bookmark-btn ${bookmarkedQuestions.includes(getCurrentQuestion()?.id || 0) ? 'active' : ''}`}
+                    onClick={() => getCurrentQuestion() && toggleBookmark(getCurrentQuestion()!.id)}
+                    aria-label="Bookmark question"
+                  >
+                    <i className={`${bookmarkedQuestions.includes(getCurrentQuestion()?.id || 0) ? 'fas' : 'far'} fa-bookmark`}></i>
+                  </button>
+                </>
+              )}
+              <button 
+                className="close-btn" 
+                onClick={closeModal}
+                aria-label="Close modal"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              {getCurrentQuestion() && (
+                <div 
+                  className="answer-content"
+                  dangerouslySetInnerHTML={{ 
+                    __html: marked.parse(getCurrentQuestion()?.answer || '') 
+                  }}
+                  ref={(node) => {
+                    // Apply syntax highlighting after content is rendered
+                    if (node) {
+                      node.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block as HTMLElement);
+                      });
+                    }
+                  }}
+                ></div>
+              )}
+            </div>
           </div>
         </div>
       </div>
