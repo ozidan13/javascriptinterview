@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Chart } from 'chart.js/auto';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -55,117 +55,25 @@ export default function Home() {
   const topicsChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
 
-  // Load initial data
-  useEffect(() => {
-    // Load questions data
-    setQuestionsData(questionsDataImport as Question[]);
-    setFilteredQuestions(questionsDataImport as Question[]);
+  // Function to determine a question's category based on content
+  const determineQuestionCategory = useCallback((question: Question): string => {
+    const text = question.question.toLowerCase();
     
-    // Client-side only code that uses localStorage
-    if (typeof window !== 'undefined') {
-      // Only load data if user is signed in
-      if (isSignedIn) {
-        // Load bookmarks from localStorage
-        const savedBookmarks = localStorage.getItem(`bookmarkedQuestions-${user?.id}`);
-        if (savedBookmarks) {
-          setBookmarkedQuestions(JSON.parse(savedBookmarks));
-        }
-        
-        // Load recently viewed from localStorage
-        const savedRecentlyViewed = localStorage.getItem(`recentlyViewed-${user?.id}`);
-        if (savedRecentlyViewed) {
-          setRecentlyViewed(JSON.parse(savedRecentlyViewed));
-        }
-      }
-      
-      // Initialize theme
-      const savedTheme = localStorage.getItem('darkTheme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const initialTheme = savedTheme ? JSON.parse(savedTheme) : prefersDark;
-      setIsDarkTheme(initialTheme);
-      
-      // Apply initial theme to body
-      document.body.classList.toggle('dark-theme', initialTheme);
+    if (text.includes('function') || text.includes('callback')) {
+      return 'functions';
+    } else if (text.includes('object') || text.includes('json')) {
+      return 'objects';
+    } else if (text.includes('array') || text.includes('splice')) {
+      return 'arrays';
+    } else if (text.includes('promise') || text.includes('async') || text.includes('prototype') || text.includes('closure')) {
+      return 'advanced';
+    } else {
+      return 'basics';
     }
-    
-    // Set up marked.js with default options, we'll handle syntax highlighting separately
-    marked.setOptions({
-      breaks: true,
-      gfm: true
-    });
-  }, [isSignedIn, user]);
-  
-  // Effect for creating/updating the topics chart
-  useEffect(() => {
-    if (questionsData.length > 0 && topicsChartCanvasRef.current) {
-      createTopicsChart();
-    }
-  }, [questionsData, isDarkTheme]);
-  
-  // Effect for applying theme changes
-  useEffect(() => {
-    document.body.classList.toggle('dark-theme', isDarkTheme);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('darkTheme', JSON.stringify(isDarkTheme));
-    }
-  }, [isDarkTheme]);
-  
-  // Function to filter questions
-  const filterQuestions = () => {
-    let filtered = [...questionsData];
-    
-    // Apply search filter - only search in question text, not answer
-    // This matches the original implementation
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(q => q.question.toLowerCase().includes(search));
-    }
-    
-    // Apply category filter based on question content
-    if (currentFilter !== 'all') {
-      filtered = filtered.filter(q => determineQuestionCategory(q) === currentFilter);
-    }
-    
-    // Apply sort order
-    switch (sortOrder) {
-      case 'id':
-        filtered.sort((a, b) => a.id - b.id);
-        break;
-      case 'id-desc':
-        filtered.sort((a, b) => b.id - a.id);
-        break;
-      case 'alpha':
-        filtered.sort((a, b) => a.question.localeCompare(b.question));
-        break;
-      case 'alpha-desc':
-        filtered.sort((a, b) => b.question.localeCompare(a.question));
-        break;
-    }
-    
-    setFilteredQuestions(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  };
+  }, []);
 
-  // Effect for filtering questions
-  useEffect(() => {
-    filterQuestions();
-  }, [questionsData, currentFilter, sortOrder, searchTerm]);
-  
-  // Effect for storing bookmarks in localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined' && isSignedIn && user) {
-      localStorage.setItem(`bookmarkedQuestions-${user.id}`, JSON.stringify(bookmarkedQuestions));
-    }
-  }, [bookmarkedQuestions, isSignedIn, user]);
-  
-  // Effect for storing recently viewed in localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined' && isSignedIn && user) {
-      localStorage.setItem(`recentlyViewed-${user.id}`, JSON.stringify(recentlyViewed));
-    }
-  }, [recentlyViewed, isSignedIn, user]);
-
-  const createTopicsChart = () => {
+  // Function to create topics chart
+  const createTopicsChart = useCallback(() => {
     if (!topicsChartCanvasRef.current) return;
     
     // Initialize categories with default counts
@@ -237,25 +145,118 @@ export default function Home() {
         }
       }
     });
-  };
+  }, [questionsData, isDarkTheme, determineQuestionCategory]);
 
-  // Function to determine a question's category based on content
-  const determineQuestionCategory = (question: Question): string => {
-    const text = question.question.toLowerCase();
+  // Function to filter questions
+  const filterQuestions = useCallback(() => {
+    let filtered = [...questionsData];
     
-    if (text.includes('function') || text.includes('callback')) {
-      return 'functions';
-    } else if (text.includes('object') || text.includes('json')) {
-      return 'objects';
-    } else if (text.includes('array') || text.includes('splice')) {
-      return 'arrays';
-    } else if (question.id > 50) {
-      return 'advanced';
-    } else {
-      return 'basics';
+    // Apply search filter - only search in question text, not answer
+    // This matches the original implementation
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(q => q.question.toLowerCase().includes(search));
     }
-  };
+    
+    // Apply category filter based on question content
+    if (currentFilter !== 'all') {
+      filtered = filtered.filter(q => determineQuestionCategory(q) === currentFilter);
+    }
+    
+    // Apply sort order
+    switch (sortOrder) {
+      case 'id':
+        filtered.sort((a, b) => a.id - b.id);
+        break;
+      case 'id-desc':
+        filtered.sort((a, b) => b.id - a.id);
+        break;
+      case 'alpha':
+        filtered.sort((a, b) => a.question.localeCompare(b.question));
+        break;
+      case 'alpha-desc':
+        filtered.sort((a, b) => b.question.localeCompare(a.question));
+        break;
+    }
+    
+    setFilteredQuestions(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [questionsData, currentFilter, sortOrder, searchTerm, determineQuestionCategory]);
 
+  // Load initial data
+  useEffect(() => {
+    // Load questions data
+    setQuestionsData(questionsDataImport as Question[]);
+    setFilteredQuestions(questionsDataImport as Question[]);
+    
+    // Client-side only code that uses localStorage
+    if (typeof window !== 'undefined') {
+      // Only load data if user is signed in
+      if (isSignedIn) {
+        // Load bookmarks from localStorage
+        const savedBookmarks = localStorage.getItem(`bookmarkedQuestions-${user?.id}`);
+        if (savedBookmarks) {
+          setBookmarkedQuestions(JSON.parse(savedBookmarks));
+        }
+        
+        // Load recently viewed from localStorage
+        const savedRecentlyViewed = localStorage.getItem(`recentlyViewed-${user?.id}`);
+        if (savedRecentlyViewed) {
+          setRecentlyViewed(JSON.parse(savedRecentlyViewed));
+        }
+      }
+      
+      // Initialize theme
+      const savedTheme = localStorage.getItem('darkTheme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initialTheme = savedTheme ? JSON.parse(savedTheme) : prefersDark;
+      setIsDarkTheme(initialTheme);
+      
+      // Apply initial theme to body
+      document.body.classList.toggle('dark-theme', initialTheme);
+    }
+    
+    // Set up marked.js with default options, we'll handle syntax highlighting separately
+    marked.setOptions({
+      breaks: true,
+      gfm: true
+    });
+  }, [isSignedIn, user]);
+  
+  // Effect for creating/updating the topics chart
+  useEffect(() => {
+    if (questionsData.length > 0 && topicsChartCanvasRef.current) {
+      createTopicsChart();
+    }
+  }, [questionsData, isDarkTheme, createTopicsChart]);
+  
+  // Effect for applying theme changes
+  useEffect(() => {
+    document.body.classList.toggle('dark-theme', isDarkTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('darkTheme', JSON.stringify(isDarkTheme));
+    }
+  }, [isDarkTheme]);
+  
+  // Effect for filtering questions
+  useEffect(() => {
+    filterQuestions();
+  }, [filterQuestions]);
+  
+  // Effect for storing bookmarks in localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isSignedIn && user) {
+      localStorage.setItem(`bookmarkedQuestions-${user.id}`, JSON.stringify(bookmarkedQuestions));
+    }
+  }, [bookmarkedQuestions, isSignedIn, user]);
+  
+  // Effect for storing recently viewed in localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isSignedIn && user) {
+      localStorage.setItem(`recentlyViewed-${user.id}`, JSON.stringify(recentlyViewed));
+    }
+  }, [recentlyViewed, isSignedIn, user]);
+  
   // Function to open question details in modal
   const openQuestionDetails = (question: Question) => {
     setCurrentQuestionId(question.id);
@@ -375,11 +376,11 @@ export default function Home() {
     // Show a maximum of 5 pages
     const maxPagesToShow = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+    const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
     
-    // Adjust start if end is at max
+    // Adjust startPage if endPage is at max
     if (endPage === totalPages) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+      startPage = Math.max(1, totalPages - maxPagesToShow + 1);
     }
     
     // Show first page with ellipsis if needed

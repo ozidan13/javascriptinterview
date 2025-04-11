@@ -4,6 +4,7 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Dashboard() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -239,9 +240,15 @@ export default function Dashboard() {
                   <div className="sm:w-2/3 flex items-center">
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mr-5 shadow-md border-2 border-white">
                       {user?.imageUrl ? (
-                        <img src={user.imageUrl} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                        <Image 
+                          src={user.imageUrl} 
+                          alt="Profile" 
+                          className="w-full h-full rounded-full object-cover"
+                          width={80}
+                          height={80} 
+                        />
                       ) : (
-                        <span className="text-3xl text-blue-600 font-semibold">{(user?.firstName?.[0] || user?.lastName?.[0] || '?').toUpperCase()}</span>
+                        <span className="text-3xl text-blue-600 font-semibold">{(user?.firstName?.[0] || user?.lastName?.[0] || "?").toUpperCase()}</span>
                       )}
                     </div>
                     <div>
@@ -474,9 +481,15 @@ export default function Dashboard() {
                   <span className="text-sm font-medium text-gray-800 mr-2">{user?.firstName || 'User'}</span>
                   <div className="h-8 w-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm border-2 border-white">
                     {user?.imageUrl ? (
-                      <img src={user.imageUrl} alt={user?.firstName || 'User'} className="h-full w-full object-cover" />
+                      <Image 
+                        src={user.imageUrl} 
+                        alt={user?.firstName || 'User'} 
+                        className="h-full w-full object-cover"
+                        width={80}
+                        height={80} 
+                      />
                     ) : (
-                      <span className="text-sm font-bold text-white">{(user?.firstName?.[0] || '?').toUpperCase()}</span>
+                      <span className="text-3xl text-blue-600 font-semibold">{(user?.firstName?.[0] || user?.lastName?.[0] || "?").toUpperCase()}</span>
                     )}
                   </div>
                 </div>
