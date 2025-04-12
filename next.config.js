@@ -26,6 +26,12 @@ const nextConfig = {
     // Enable optimized bundle splitting
     optimizeCss: true,
   },
+  // Add webpack configuration
+  webpack: (config, { isServer }) => {
+    // Explicitly include source-map
+    config.resolve.alias['next/dist/compiled/source-map'] = require.resolve('source-map');
+    return config;
+  }
 };
 
 module.exports = nextConfig; 
