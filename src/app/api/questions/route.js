@@ -11,14 +11,16 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const skip = (page - 1) * limit;
 
-    // Fetch a page of questions and the total count
+    // Fetch a page of questions
     const questions = await Question.find({})
-      .select('-__v -createdAt -updatedAt')
+      .select('-__v -createdAt -updatedAt') // Exclude unnecessary fields
+      .sort({ id: 1 }) // Add a sort order if needed, e.g., by ID
       .skip(skip)
       .limit(limit)
-      .lean();
+      .lean(); // Use lean for performance
       
-    const totalQuestions = await Question.countDocuments({});
+    // Use estimatedDocumentCount for potentially better performance on large collections
+    const totalQuestions = await Question.estimatedDocumentCount();
     
     return NextResponse.json({
       questions,
@@ -28,8 +30,9 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error('Error fetching questions:', error);
+    // Ensure detailed error logging for Vercel
     return NextResponse.json(
-      { error: 'Failed to fetch questions' },
+      { error: 'Failed to fetch questions', details: error.message },
       { status: 500 }
     );
   }
