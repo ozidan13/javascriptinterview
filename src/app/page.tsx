@@ -32,6 +32,7 @@ export default function Home() {
   
   // State variables
   const [questionsData, setQuestionsData] = useState<Question[]>([]);
+  const [totalQuestions, setTotalQuestions] = useState(0);
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
   const [bookmarkedQuestions, setBookmarkedQuestions] = useState<number[]>([]);
@@ -145,18 +146,22 @@ export default function Home() {
     });
   }, [questionsData, isDarkTheme, determineQuestionCategory]);
 
-  // Function to filter questions
+  // Function to filter questions (Refetch page 1 when filters change)
   const filterQuestions = useCallback(() => {
-    let filtered = [...questionsData];
+    // NOTE: Filtering/sorting currently only applies *after* fetching a page.
+    // For server-side filtering/sorting, the API would need to be updated.
+    let filtered = [...questionsData]; // Start with the currently fetched page's data
     
-    // Apply search filter - only search in question text, not answer
-    // This matches the original implementation
+    // Apply search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(q => q.question.toLowerCase().includes(search));
+      filtered = filtered.filter(q => 
+        q.question.toLowerCase().includes(search) || 
+        q.answer.toLowerCase().includes(search) // Also search in answer
+      );
     }
     
-    // Apply category filter based on question content
+    // Apply category filter
     if (currentFilter !== 'all') {
       filtered = filtered.filter(q => determineQuestionCategory(q) === currentFilter);
     }
@@ -178,20 +183,45 @@ export default function Home() {
     }
     
     setFilteredQuestions(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    // Don't reset currentPage here, let fetch handle it if needed
+    // setCurrentPage(1); 
   }, [questionsData, currentFilter, sortOrder, searchTerm, determineQuestionCategory]);
 
-  // Fetch data from API instead of importing directly
-  const fetchQuestions = async () => {
+  // Fetch data from the paginated API and update state
+  const fetchQuestions = async (page = 1, limit = questionsPerPage) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/questions');
+      setCurrentPage(page); // Set current page state when fetching
+      const response = await fetch(`/api/questions?page=${page}&limit=${limit}`);
       if (!response.ok) {
         throw new Error('Failed to fetch questions');
       }
       const data = await response.json();
-      setQuestionsData(data);
-      setFilteredQuestions(data);
+      
+      setQuestionsData(data.questions); // Store raw data for modal, etc.
+      setTotalQuestions(data.totalQuestions);
+      
+      // Apply filters/sorting *after* fetching the new page data
+      // We pass data.questions directly to avoid waiting for the next render cycle
+      let filtered = [...data.questions];
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        filtered = filtered.filter(q => 
+          q.question.toLowerCase().includes(search) || 
+          q.answer.toLowerCase().includes(search)
+        );
+      }
+      if (currentFilter !== 'all') {
+        filtered = filtered.filter(q => determineQuestionCategory(q) === currentFilter);
+      }
+      switch (sortOrder) {
+        case 'id': filtered.sort((a, b) => a.id - b.id); break;
+        case 'id-desc': filtered.sort((a, b) => b.id - a.id); break;
+        case 'alpha': filtered.sort((a, b) => a.question.localeCompare(b.question)); break;
+        case 'alpha-desc': filtered.sort((a, b) => b.question.localeCompare(a.question)); break;
+      }
+      setFilteredQuestions(filtered); // Update filtered questions with the newly fetched and filtered/sorted page
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -199,10 +229,9 @@ export default function Home() {
     }
   };
 
-  // Load initial data
+  // Load initial data (first page)
   useEffect(() => {
-    // Fetch questions from API
-    fetchQuestions();
+    fetchQuestions(1); // Fetch page 1 initially
     
     // Client-side only code that uses localStorage
     if (typeof window !== 'undefined') {
@@ -253,10 +282,16 @@ export default function Home() {
     }
   }, [isDarkTheme]);
   
-  // Effect for filtering questions
+  // Re-fetch when filters or sort order change
+  // We need a separate effect for this to avoid infinite loops
+  // and to ensure we fetch page 1 when filters change.
   useEffect(() => {
-    filterQuestions();
-  }, [filterQuestions]);
+    // Don't run on initial mount, fetchQuestions(1) handles that.
+    // Check if questionsData has been populated to avoid premature fetch.
+    if (questionsData.length > 0) { 
+      fetchQuestions(1); // Fetch page 1 when filters/sort change
+    }
+  }, [currentFilter, sortOrder, searchTerm]); // Dependencies that trigger a page 1 refetch
   
   // Effect for storing bookmarks in localStorage
   useEffect(() => {
@@ -366,114 +401,90 @@ export default function Home() {
     signOut();
   };
   
-  // Function to render pagination with improved handling for many pages
+  // Function to render pagination with click handlers that fetch data
   const renderPagination = () => {
-    const totalPages = Math.ceil(filteredQuestions.length / questionsPerPage);
-    const pages = [];
-    
-    // Only show pagination if there are more than one page
+    const totalPages = Math.ceil(totalQuestions / questionsPerPage);
     if (totalPages <= 1) return null;
-    
+
+    const pages = [];
+    const handlePageClick = (newPage: number) => {
+      if (newPage >= 1 && newPage <= totalPages) {
+        fetchQuestions(newPage);
+      }
+    };
+
     // Previous button
     pages.push(
       <button 
         key="prev" 
         className={`pagination-btn ${currentPage === 1 ? 'disabled' : ''}`}
-        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+        onClick={() => handlePageClick(currentPage - 1)} // Call fetchQuestions
         disabled={currentPage === 1}
         aria-label="Previous page"
       >
         <i className="fas fa-chevron-left"></i>
       </button>
     );
-    
-    // Calculate range of page numbers to display
-    // Show a maximum of 5 pages
+
+    // Page number logic (simplified for clarity, original logic was fine too)
     const maxPagesToShow = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-    
-    // Adjust startPage if endPage is at max
-    if (endPage === totalPages) {
-      startPage = Math.max(1, totalPages - maxPagesToShow + 1);
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+    if (endPage - startPage + 1 < maxPagesToShow) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
     }
-    
-    // Show first page with ellipsis if needed
+
     if (startPage > 1) {
       pages.push(
-        <button
-          key={1}
-          className={`pagination-btn ${currentPage === 1 ? 'active' : ''}`}
-          onClick={() => setCurrentPage(1)}
-          aria-label="Go to page 1"
-        >
-          1
-        </button>
+        <button key={1} className="pagination-btn" onClick={() => handlePageClick(1)} aria-label="Go to page 1">1</button>
       );
-      
       if (startPage > 2) {
-        pages.push(
-          <span key="ellipsis1" className="pagination-ellipsis">...</span>
-        );
+        pages.push(<span key="ellipsis-start" className="pagination-ellipsis">...</span>);
       }
     }
-    
-    // Page numbers
+
     for (let i = startPage; i <= endPage; i++) {
-      if (i !== 1 && i !== totalPages) { // Skip first and last page as they're handled separately
-        pages.push(
-          <button
-            key={i}
-            className={`pagination-btn ${currentPage === i ? 'active' : ''}`}
-            onClick={() => setCurrentPage(i)}
-            aria-label={`Go to page ${i}`}
-          >
-            {i}
-          </button>
-        );
-      }
-    }
-    
-    // Show last page with ellipsis if needed
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        pages.push(
-          <span key="ellipsis2" className="pagination-ellipsis">...</span>
-        );
-      }
-      
       pages.push(
         <button
-          key={totalPages}
-          className={`pagination-btn ${currentPage === totalPages ? 'active' : ''}`}
-          onClick={() => setCurrentPage(totalPages)}
-          aria-label={`Go to page ${totalPages}`}
+          key={i}
+          className={`pagination-btn ${currentPage === i ? 'active' : ''}`}
+          onClick={() => handlePageClick(i)} // Call fetchQuestions
+          aria-label={`Go to page ${i}`}
         >
-          {totalPages}
+          {i}
         </button>
       );
     }
-    
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(<span key="ellipsis-end" className="pagination-ellipsis">...</span>);
+      }
+      pages.push(
+        <button key={totalPages} className="pagination-btn" onClick={() => handlePageClick(totalPages)} aria-label={`Go to page ${totalPages}`}>{totalPages}</button>
+      );
+    }
+
     // Next button
     pages.push(
       <button 
         key="next" 
         className={`pagination-btn ${currentPage === totalPages ? 'disabled' : ''}`}
-        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+        onClick={() => handlePageClick(currentPage + 1)} // Call fetchQuestions
         disabled={currentPage === totalPages}
         aria-label="Next page"
       >
         <i className="fas fa-chevron-right"></i>
       </button>
     );
-    
+
     return <div className="pagination">{pages}</div>;
   };
   
-  // Get current questions for pagination
+  // Get current questions returns the already fetched & filtered page data
   const getCurrentQuestions = () => {
-    const startIndex = (currentPage - 1) * questionsPerPage;
-    return filteredQuestions.slice(startIndex, startIndex + questionsPerPage);
+    // No slicing needed here anymore, filteredQuestions holds the current page
+    return filteredQuestions; 
   };
   
   // Get current question detail
@@ -695,8 +706,8 @@ export default function Home() {
             </div>
             <div className="header-stats">
               <div className="stat-item">
-                <span className="stat-value">{questionsData.length}</span>
-                <span className="stat-label">Questions</span>
+                <span className="stat-value">{loading ? '-' : totalQuestions}</span>
+                <span className="stat-label">Total Questions</span>
               </div>
               <div className="stat-item">
                 <span className="stat-value">{bookmarkedQuestions.length}</span>
@@ -714,7 +725,7 @@ export default function Home() {
                 <h3>Statistics</h3>
                 <div className="stats-container">
                   <div className="stat-box">
-                    <span className="stat-number">{questionsData.length}</span>
+                    <span className="stat-number">{loading ? '-' : totalQuestions}</span>
                     <span className="stat-text">Total Questions</span>
                   </div>
                   <div className="stat-box">
