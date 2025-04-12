@@ -20,15 +20,5 @@ const QuestionSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Handle model compilation with error catching
-let Question;
-try {
-  // Only compile the model once
-  Question = mongoose.models.Question || mongoose.model('Question', QuestionSchema);
-  console.log('Question model compiled successfully');
-} catch (error) {
-  console.error('Error compiling Question model:', error);
-  throw error;
-}
-
-export default Question; 
+// Only compile the model once
+export default mongoose.models.Question || mongoose.model('Question', QuestionSchema); 
