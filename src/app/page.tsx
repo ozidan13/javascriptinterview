@@ -8,9 +8,6 @@ import 'highlight.js/styles/atom-one-dark.min.css';
 import { UserButton, useUser, SignInButton, SignUpButton, SignedIn, SignedOut, useClerk } from '@clerk/nextjs';
 import Link from 'next/link';
 
-// Importing data - we'll move this to public/datajs.json
-import questionsDataImport from '../../public/datajs.json';
-
 // Define TypeScript interfaces
 interface Question {
   id: number;
@@ -46,6 +43,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // Constants
   const questionsPerPage = 12;
@@ -183,11 +181,28 @@ export default function Home() {
     setCurrentPage(1); // Reset to first page when filters change
   }, [questionsData, currentFilter, sortOrder, searchTerm, determineQuestionCategory]);
 
+  // Fetch data from API instead of importing directly
+  const fetchQuestions = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/questions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions');
+      }
+      const data = await response.json();
+      setQuestionsData(data);
+      setFilteredQuestions(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      setLoading(false);
+    }
+  };
+
   // Load initial data
   useEffect(() => {
-    // Load questions data
-    setQuestionsData(questionsDataImport as Question[]);
-    setFilteredQuestions(questionsDataImport as Question[]);
+    // Fetch questions from API
+    fetchQuestions();
     
     // Client-side only code that uses localStorage
     if (typeof window !== 'undefined') {
@@ -520,6 +535,20 @@ export default function Home() {
       });
     }
   }, []);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className={`js-qa-app ${isDarkTheme ? 'dark-theme' : ''}`}>
+        <div className="app-container">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading questions...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`js-qa-app ${isDarkTheme ? 'dark-theme' : ''}`}>

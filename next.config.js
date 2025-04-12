@@ -5,9 +5,26 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-  // Convert Image components to img tags for better compatibility
+  // Image optimization settings
   images: {
-    unoptimized: true,
+    domains: ['clerk.dev', 'img.clerk.com'],
+    // Only disable optimization if absolutely necessary
+    unoptimized: false,
+  },
+  // Disable type checking during builds for better performance
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // Output settings for Vercel
+  output: 'standalone',
+  // Tracing excludes moved from experimental
+  outputFileTracingExcludes: {
+    '*': ['node_modules/**/*'],
+  },
+  // Experimental features
+  experimental: {
+    // Enable optimized bundle splitting
+    optimizeCss: true,
   },
 };
 

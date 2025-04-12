@@ -1,8 +1,58 @@
 # JavaScript Interview Q&A
 
-A comprehensive Next.js application featuring a collection of JavaScript interview questions and answers, designed to help developers prepare for technical interviews.
+A web application for JavaScript interview questions and answers with features like bookmarking, searching, filtering, and categories.
 
-![JavaScript Interview Q&A Screenshot](https://your-screenshot-url-here.png)
+## Features
+
+- View JavaScript interview questions organized by categories
+- Search, filter, and sort questions
+- Bookmark favorite questions for quick access
+- Recently viewed questions tracking
+- Light and dark theme support
+- User authentication via Clerk
+- Data stored in MongoDB
+
+## Setup Instructions
+
+1. Clone the repository
+2. Install dependencies
+   ```
+   npm install
+   ```
+3. Create a `.env.local` file with your environment variables:
+   ```
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+   CLERK_SECRET_KEY=your_clerk_secret_key
+   NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+   NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
+   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
+   MONGODB_URI=your_mongodb_connection_string
+   ```
+
+4. Seed the database with questions:
+   ```
+   npm run seed-db
+   ```
+
+5. Start the development server:
+   ```
+   npm run dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Technologies Used
+
+- Next.js
+- React
+- MongoDB
+- Mongoose
+- Chart.js
+- Clerk Authentication
+- Marked (for Markdown)
+- highlight.js (for syntax highlighting)
+- Tailwind CSS
 
 ## 🚀 Features
 

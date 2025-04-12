@@ -1492,3 +1492,38 @@ body {
 .js-qa-app .sidebar::-webkit-scrollbar-track {
   background-color: transparent;
 }
+
+/* Loading spinner styles */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 1.2rem;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #4361ee;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dark-theme .loading-spinner {
+  border: 5px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #4cc9f0;
+}
+
+.dark-theme .loading-container {
+  color: #e6e6e6;
+}
