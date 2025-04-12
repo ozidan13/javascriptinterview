@@ -17,10 +17,6 @@ const nextConfig = {
   },
   // Output settings for Vercel
   output: 'standalone',
-  // Tracing excludes moved from experimental
-  outputFileTracingExcludes: {
-    '*': ['node_modules/**/*'],
-  },
   // Experimental features
   experimental: {
     // Enable optimized bundle splitting
