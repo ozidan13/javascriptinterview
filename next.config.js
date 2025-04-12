@@ -30,6 +30,12 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     // Explicitly include source-map
     config.resolve.alias['next/dist/compiled/source-map'] = require.resolve('source-map');
+    
+    // Enable source maps in production
+    if (!isServer) {
+      config.devtool = 'source-map';
+    }
+    
     return config;
   }
 };
