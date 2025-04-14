@@ -88,6 +88,11 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
 
   // Determine category based on question content
   const determineQuestionCategory = useCallback((question: Question): string => {
+    // Add null check to prevent TypeError
+    if (!question || !question.question) {
+      return 'basics'; // Default category if question or question.question is undefined
+    }
+    
     const text = question.question.toLowerCase();
     if (text.includes('function') || text.includes('callback')) return 'functions';
     if (text.includes('object') || text.includes('json')) return 'objects';
@@ -101,14 +106,21 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     try {
       setLoading(true);
       setCurrentPage(page); // Update current page state
-      const response = await fetch(`/api/questions?page=${page}&limit=${limit}`);
+      
+      // Always request count for any page to ensure pagination works
+      const response = await fetch(`/api/questions?page=${page}&limit=${limit}&count=true`);
+      
       if (!response.ok) {
         throw new Error(`Failed to fetch questions: ${response.statusText}`);
       }
       const data = await response.json();
 
       setQuestionsData(data.questions); // Store raw fetched data for this page
-      setTotalQuestions(data.totalQuestions);
+      
+      // Ensure totalQuestions is always set, even on pages after the first
+      if (data.totalQuestions !== null) {
+        setTotalQuestions(data.totalQuestions);
+      }
 
       // Apply filtering and sorting *to the fetched page data*
       let processedQuestions = [...data.questions];
@@ -149,7 +161,11 @@ export const AppContextProvider: React.FC<{ children: ReactNode }> = ({ children
     // NOTE: This chart reflects the *currently fetched page* data (questionsData),
     // not necessarily all questions, unless the API changes or we fetch all data upfront.
     // For a chart of *all* questions, we'd need the full dataset or an aggregation API endpoint.
-    questionsData.forEach(question => {
+    
+    // Filter out undefined or invalid questions before processing
+    const validQuestions = questionsData.filter(q => q && q.question);
+    
+    validQuestions.forEach(question => {
       const category = determineQuestionCategory(question);
       const key = category.charAt(0).toUpperCase() + category.slice(1);
       if (categories[key as keyof Categories] !== undefined) {
