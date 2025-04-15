@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "javascriptinterview",
-  description: "javascriptinterview",
+  title: "JavaScript Interview Q&A - Master Your JavaScript Skills",
+  description: "A comprehensive platform to practice and master JavaScript concepts for technical interviews with interactive learning paths and curated questions.",
 };
 
 // Add Font Awesome script

@@ -37,7 +37,17 @@ export default function Sidebar({ isOpen, toggleMenu }: SidebarProps) {
 
       {/* Theme Toggle */}
       <div className="theme-toggle mb-4">
-        <span className="toggle-label">Theme</span>
+        <span className="toggle-label">
+          {isDarkTheme ? (
+            <>
+              <i className="fas fa-moon mr-2"></i> Dark Mode
+            </>
+          ) : (
+            <>
+              <i className="fas fa-sun mr-2"></i> Light Mode
+            </>
+          )}
+        </span>
         <label className="switch">
           <input
             type="checkbox"
@@ -49,46 +59,57 @@ export default function Sidebar({ isOpen, toggleMenu }: SidebarProps) {
         </label>
       </div>
 
-      {/* Navigation - Use Next.js Link and check pathname */}
-      <nav className="sidebar-nav">
-        <Link
-          href="/dashboard"
-          className={`nav-item ${pathname === '/dashboard' ? 'active' : ''}`}
-          onClick={handleLinkClick} // Close sidebar on click
-        >
-          <i className="fas fa-home"></i>
-          <span>Statistics</span>
-        </Link>
-        <Link
-          href="/questions"
-          className={`nav-item ${pathname === '/questions' ? 'active' : ''}`}
-          onClick={handleLinkClick} // Close sidebar on click
-        >
-          <i className="fas fa-list"></i>
-          <span>All Questions</span>
-        </Link>
-        <Link
-          href="/bookmarks"
-          className={`nav-item ${pathname === '/bookmarks' ? 'active' : ''}`}
-          onClick={handleLinkClick} // Close sidebar on click
-        >
-          <i className="fas fa-bookmark"></i>
-          <span>Bookmarks</span>
-        </Link>
-      </nav>
+      {/* Navigation */}
+      <div className="sidebar-section">
+        <h3 className="sidebar-heading">Main Menu</h3>
+        <nav className="sidebar-nav">
+          <Link
+            href="/dashboard"
+            className={`nav-item ${pathname === '/dashboard' ? 'active' : ''}`}
+            onClick={handleLinkClick} // Close sidebar on click
+          >
+            <i className="fas fa-chart-bar"></i>
+            <span>Statistics</span>
+          </Link>
+          <Link
+            href="/questions"
+            className={`nav-item ${pathname === '/questions' ? 'active' : ''}`}
+            onClick={handleLinkClick} // Close sidebar on click
+          >
+            <i className="fas fa-list"></i>
+            <span>All Questions</span>
+          </Link>
+          <Link
+            href="/bookmarks"
+            className={`nav-item ${pathname === '/bookmarks' ? 'active' : ''}`}
+            onClick={handleLinkClick} // Close sidebar on click
+          >
+            <i className="fas fa-bookmark"></i>
+            <span>Bookmarks</span>
+          </Link>
+          <Link
+            href="/roadmap"
+            className={`nav-item ${pathname === '/roadmap' ? 'active' : ''}`}
+            onClick={handleLinkClick} // Close sidebar on click
+          >
+            <i className="fas fa-road"></i>
+            <span>Learning Roadmap</span>
+          </Link>
+        </nav>
+      </div>
 
       {/* Auth Section */}
       <div className="sidebar-auth">
+        <h3 className="sidebar-heading">Account</h3>
         <SignedOut>
           <div className="flex flex-col gap-3">
-            <h3>Account</h3>
             <SignInButton mode="modal">
-              <button className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all text-sm flex items-center justify-center">
+              <button className="auth-button auth-button-primary">
                 <i className="fas fa-sign-in-alt mr-2"></i> Sign In
               </button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <button className="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition-all text-sm flex items-center justify-center">
+              <button className="auth-button auth-button-secondary">
                 <i className="fas fa-user-plus mr-2"></i> Sign Up
               </button>
             </SignUpButton>
@@ -97,7 +118,6 @@ export default function Sidebar({ isOpen, toggleMenu }: SidebarProps) {
 
         <SignedIn>
           <div className="flex flex-col gap-3">
-            <h3>My Account</h3>
             <div className="user-info">
               <UserButton afterSignOutUrl="/" />
               <div>
@@ -106,11 +126,9 @@ export default function Sidebar({ isOpen, toggleMenu }: SidebarProps) {
                 <div className="text-gray-500 text-xs">{user?.primaryEmailAddress?.emailAddress || ''}</div>
               </div>
             </div>
-            {/* Link to external dashboard if needed, or remove */}
-            {/* <Link href="/dashboard" ... > ... </Link> */}
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-all text-sm flex items-center justify-center"
+              className="auth-button auth-button-danger"
             >
               <i className="fas fa-sign-out-alt mr-2"></i> Logout
             </button>
@@ -121,6 +139,11 @@ export default function Sidebar({ isOpen, toggleMenu }: SidebarProps) {
       {/* Footer */}
       <div className="sidebar-footer">
         <p>&copy; 2025 JavaScript Q&A</p>
+        <div className="social-links">
+          <a href="#" aria-label="GitHub"><i className="fab fa-github"></i></a>
+          <a href="#" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
+          <a href="#" aria-label="LinkedIn"><i className="fab fa-linkedin"></i></a>
+        </div>
       </div>
     </aside>
   );
