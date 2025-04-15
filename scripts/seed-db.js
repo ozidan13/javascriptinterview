@@ -37,8 +37,8 @@ async function seedDatabase() {
   }
 
   const uri = MONGODB_URI_TEMPLATE
-    .replace('${MONGODB_USER}', MONGODB_USER)
-    .replace('${MONGODB_PASS}', MONGODB_PASS);
+    .replace('{{MONGODB_USER}}', MONGODB_USER)
+    .replace('{{MONGODB_PASS}}', MONGODB_PASS);
     
   let client;
 

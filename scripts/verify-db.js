@@ -23,8 +23,8 @@ async function verifyConnection() {
 
   // Construct the final URI
   const MONGODB_URI = MONGODB_URI_TEMPLATE
-    .replace('${MONGODB_USER}', MONGODB_USER)
-    .replace('${MONGODB_PASS}', MONGODB_PASS);
+    .replace('{{MONGODB_USER}}', MONGODB_USER)
+    .replace('{{MONGODB_PASS}}', MONGODB_PASS);
 
   console.log('Attempting to connect to MongoDB...');
   
