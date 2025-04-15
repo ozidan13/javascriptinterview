@@ -89,6 +89,11 @@ export default function LandingPage() {
                 </button>
             </Link>
         </SignedIn>
+        <Link href="/dashboard">
+                <button className="mt-4 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all text-lg shadow-md">
+                    Continue without signing in
+                </button>
+        </Link>
         <footer className="absolute bottom-4 text-gray-400 text-xs">
             &copy; 2025 JavaScript Q&A
         </footer>
