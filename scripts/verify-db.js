@@ -2,7 +2,7 @@
 require('dotenv').config({ path: '.env.local' });
 
 const mongoose = require('mongoose');
-const { DB_NAME, ensureDbNameInUri } = require('../lib/db-config');
+const { DB_NAME, ensureDbNameInUri } = require('../lib/db-config.cjs');
 
 async function verifyConnection() {
   const MONGODB_URI_TEMPLATE = process.env.MONGODB_URI;

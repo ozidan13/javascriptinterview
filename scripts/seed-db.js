@@ -4,7 +4,7 @@ require('dotenv').config({ path: '.env.local' });
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const path = require('path');
-const { DB_NAME, ensureDbNameInUri } = require('../lib/db-config');
+const { DB_NAME, ensureDbNameInUri } = require('../lib/db-config.cjs');
 
 // Load questions data from JSON file
 async function loadQuestionsData() {
