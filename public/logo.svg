@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Background -->
+  <rect x="5" y="5" width="90" height="90" rx="15" fill="#F7DF1E" />
+  
+  <!-- JS Text -->
+  <text x="50" y="65" font-family="Arial, sans-serif" font-size="42" font-weight="bold" text-anchor="middle" fill="#323330">JS</text>
+  
+  <!-- Code brackets -->
+  <path d="M20,15 L30,25 L20,35" fill="none" stroke="#323330" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M80,15 L70,25 L80,35" fill="none" stroke="#323330" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Circling dots showing interactive nature -->
+  <circle cx="15" cy="80" r="3" fill="#323330" />
+  <circle cx="25" cy="85" r="3" fill="#323330" />
+  <circle cx="35" cy="87" r="3" fill="#323330" />
+  <circle cx="45" cy="88" r="3" fill="#323330" />
+  <circle cx="55" cy="88" r="3" fill="#323330" />
+  <circle cx="65" cy="87" r="3" fill="#323330" />
+  <circle cx="75" cy="85" r="3" fill="#323330" />
+  <circle cx="85" cy="80" r="3" fill="#323330" />
+</svg> 

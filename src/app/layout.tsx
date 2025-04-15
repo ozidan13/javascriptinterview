@@ -18,6 +18,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "JavaScript Interview Q&A - Master Your JavaScript Skills",
   description: "A comprehensive platform to practice and master JavaScript concepts for technical interviews with interactive learning paths and curated questions.",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+    ],
+  }
 };
 
 // Add Font Awesome script
