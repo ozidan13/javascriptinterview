@@ -27,15 +27,5 @@
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
       ]
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1",
-      "status": 200
-    },
-    {
-      "handle": "filesystem"
-    }
   ]
 } 
