@@ -8,7 +8,8 @@
     "silent": true
   },
   "env": {
-    "NEXT_TELEMETRY_DISABLED": "1"
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "NODE_ENV": "production"
   },
   "functions": {
     "src/app/api/**/*": {
@@ -20,8 +21,27 @@
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=60, stale-while-revalidate=300" }
+        { "key": "Cache-Control", "value": "public, max-age=60, stale-while-revalidate=300" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
       ]
+    }
+  ],
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1",
+      "status": 200
+    },
+    {
+      "handle": "filesystem"
     }
   ]
 } 

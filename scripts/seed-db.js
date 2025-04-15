@@ -18,13 +18,28 @@ async function loadQuestionsData() {
 }
 
 async function seedDatabase() {
-  // Check if MONGODB_URI environment variable is set
-  if (!process.env.MONGODB_URI) {
-    console.error('MONGODB_URI environment variable is not set');
+  // Check if MONGODB environment variables are set
+  const MONGODB_URI_TEMPLATE = process.env.MONGODB_URI;
+  const MONGODB_USER = process.env.MONGODB_USER;
+  const MONGODB_PASS = process.env.MONGODB_PASS;
+
+  if (!MONGODB_URI_TEMPLATE) {
+    console.error('MONGODB_URI template environment variable is not set');
+    process.exit(1);
+  }
+  if (!MONGODB_USER) {
+    console.error('MONGODB_USER environment variable is not set');
+    process.exit(1);
+  }
+  if (!MONGODB_PASS) {
+    console.error('MONGODB_PASS environment variable is not set');
     process.exit(1);
   }
 
-  const uri = process.env.MONGODB_URI;
+  const uri = MONGODB_URI_TEMPLATE
+    .replace('${MONGODB_USER}', MONGODB_USER)
+    .replace('${MONGODB_PASS}', MONGODB_PASS);
+    
   let client;
 
   try {

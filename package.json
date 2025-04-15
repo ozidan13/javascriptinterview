@@ -8,7 +8,10 @@
     "build": "npm run clean && next build",
     "start": "next start",
     "lint": "next lint",
-    "seed-db": "node -r dotenv/config scripts/seed-db.js"
+    "seed-db": "node -r dotenv/config scripts/seed-db.js",
+    "verify-db": "node -r dotenv/config scripts/verify-db.js",
+    "prepareVercel": "npm run verify-db && npm run seed-db",
+    "postinstall": "node -e \"try { require('./scripts/postinstall.js') } catch(e) {console.log('No postinstall script found')}\""
   },
   "engines": {
     "node": ">=18.0.0"
