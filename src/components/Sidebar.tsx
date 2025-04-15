@@ -36,28 +36,34 @@ export default function Sidebar({ isOpen, toggleMenu }: SidebarProps) {
       </div>
 
       {/* Theme Toggle */}
-      <div className="theme-toggle mb-4">
-        <span className="toggle-label">
+      {
+        /*
+        <div className="theme-toggle-container flex items-center justify-between  mb-6 bg-opacity-10 rounded-lg transition-all duration-300 hover:bg-opacity-20 " >
+        <div className="flex items-center">
           {isDarkTheme ? (
-            <>
-              <i className="fas fa-moon mr-2"></i> Dark Mode
-            </>
+            <i className="fas fa-moon text-lg mr-3" style={{ color: 'var(--accent-color)' }}></i>
           ) : (
-            <>
-              <i className="fas fa-sun mr-2"></i> Light Mode
-            </>
+            <i className="fas fa-sun text-lg mr-3" ></i>
           )}
-        </span>
-        <label className="switch">
-          <input
-            type="checkbox"
-            checked={isDarkTheme}
-            onChange={toggleTheme}
-            aria-label={`Switch to ${isDarkTheme ? 'light' : 'dark'} theme`}
-          />
-          <span className="slider round"></span>
-        </label>
+          <span className="text-sm font-medium">{isDarkTheme ? 'Dark Mode' : 'Light Mode'}</span>
+        </div>
+        <button 
+          onClick={toggleTheme}
+          className="theme-toggle-button relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          aria-label={`Switch to ${isDarkTheme ? 'light' : 'dark'} theme`}
+        >
+          <span 
+            className="absolute top-1 left-1 w-4 h-4 rounded-full transform transition-transform duration-300"
+            style={{ 
+              backgroundColor: 'white',
+              transform: isDarkTheme ? 'translateX(24px)' : 'translateX(0)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+            }}
+          ></span>
+        </button>
       </div>
+        */
+      }
 
       {/* Navigation */}
       <div className="sidebar-section">
