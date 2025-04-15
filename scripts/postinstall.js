@@ -3,9 +3,13 @@ const path = require('path');
 
 console.log('Running post-install checks...');
 
-// Check for environment variables
+// Check for required environment variables (e.g., Clerk keys)
 function checkEnvVars() {
-  const requiredEnvVars = ['MONGODB_URI', 'MONGODB_USER', 'MONGODB_PASS'];
+  const requiredEnvVars = [
+    'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
+    'CLERK_SECRET_KEY'
+    // Add any other essential non-database env vars here
+  ];
   const missingVars = [];
   
   for (const envVar of requiredEnvVars) {
@@ -18,22 +22,21 @@ function checkEnvVars() {
     console.warn(`WARNING: Missing required environment variables: ${missingVars.join(', ')}`);
     console.log('Make sure these variables are set in your .env.local file and on your Vercel deployment.');
   } else {
-    console.log('✅ All required environment variables are defined.');
+    console.log('✅ Required environment variables are defined.');
   }
 }
 
-// Check for database data
-function checkDatabaseConfig() {
+// Check for the main data file
+function checkDataFile() {
   try {
-    // See if we have a seed file
-    const seedFilePath = path.join(process.cwd(), 'public', 'datajs.json');
-    if (fs.existsSync(seedFilePath)) {
-      console.log('✅ Seed data file found. Use npm run seed-db to populate the database if needed.');
+    const dataFilePath = path.join(process.cwd(), 'public', 'datajs.json');
+    if (fs.existsSync(dataFilePath)) {
+      console.log('✅ Main data file (datajs.json) found.');
     } else {
-      console.warn('⚠️ No seed data file found at public/datajs.json');
+      console.warn('⚠️ Main data file not found at public/datajs.json');
     }
   } catch (error) {
-    console.error('Error checking database config:', error);
+    console.error('Error checking data file:', error);
   }
 }
 
@@ -54,18 +57,15 @@ function checkNextConfig() {
 // Run all checks
 function runChecks() {
   console.log('=============================================');
-  console.log('🔍 Performing environment checks');
+  console.log('🔍 Performing environment and file checks');
   console.log('=============================================');
   
   checkEnvVars();
-  checkDatabaseConfig();
+  checkDataFile();
   checkNextConfig();
   
   console.log('=============================================');
-  console.log('If using Vercel deployment, remember to:');
-  console.log('1. Set MONGODB_URI (template), MONGODB_USER, MONGODB_PASS in Vercel Environment Variables');
-  console.log('2. Ensure MongoDB allows connections from Vercel IPs');
-  console.log('3. Run verify-db script to confirm database connectivity');
+  console.log('Project setup checks complete.');
   console.log('=============================================');
 }
 
