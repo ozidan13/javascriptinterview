@@ -15,7 +15,7 @@ export default function MainHeader() {
     <header className="main-header">
       <div className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
         <div className="search-container">
-          <i className="fas fa-search"></i>
+          <i className="fas fa-search z-10"></i>
           <input
             type="text"
             placeholder="Search for questions..."
